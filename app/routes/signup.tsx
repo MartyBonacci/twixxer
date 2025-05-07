@@ -2,8 +2,9 @@ import { Form, useActionData, useNavigation } from "react-router";
 import { z } from "zod";
 import { database } from "~/database/context";
 import * as schema from "~/database/schema";
-import { createHash, randomBytes } from "crypto";
+import { randomBytes } from "crypto";
 import { v4 as uuidv4 } from 'uuid';
+import { hashPassword } from "~/utils/auth";
 
 // Since we don't have type generation yet
 type RouteArgs = any;
@@ -46,8 +47,8 @@ export async function action({ request }: Route["ActionArgs"]) {
     return { errors: result.error.format() };
   }
 
-  // Hash the password - in a real app, use a more secure method like bcrypt
-  const passwordHash = createHash('sha256').update(result.data.password).digest('hex');
+  // Hash the password using Argon2
+  const passwordHash = await hashPassword(result.data.password);
   
   // Generate random activation token (32 chars for the DB field)
   const activationToken = randomBytes(16).toString('hex');

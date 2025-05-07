@@ -1,0 +1,1 @@
+ALTER TABLE "profile" ALTER COLUMN "profilePasswordHash" SET DATA TYPE varchar(255);

@@ -1,0 +1,132 @@
+{
+  "id": "97491883-7158-4384-8d6b-8585ba30b060",
+  "prevId": "6bf145c1-851c-4a50-a085-9306f05abb25",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.guestBook": {
+      "name": "guestBook",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "guestBook_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "guestBook_email_unique": {
+          "name": "guestBook_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.profile": {
+      "name": "profile",
+      "schema": "",
+      "columns": {
+        "profileId": {
+          "name": "profileId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "profileAbout": {
+          "name": "profileAbout",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "profileActivationToken": {
+          "name": "profileActivationToken",
+          "type": "char(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "profileEmail": {
+          "name": "profileEmail",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "profileImageUrl": {
+          "name": "profileImageUrl",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "profileName": {
+          "name": "profileName",
+          "type": "varchar(127)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "profilePasswordHash": {
+          "name": "profilePasswordHash",
+          "type": "char(97)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "profile_profileEmail_unique": {
+          "name": "profile_profileEmail_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "profileEmail"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
