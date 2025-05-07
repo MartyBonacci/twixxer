@@ -6,6 +6,7 @@ import "react-router";
 
 import { DatabaseContext } from "~/database/context";
 import * as schema from "~/database/schema";
+import { initializeEmailTransporter } from "~/utils/email";
 
 declare module "react-router" {
   interface AppLoadContext {
@@ -16,6 +17,11 @@ declare module "react-router" {
 export const app = express();
 
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+
+// Initialize email transporter
+initializeEmailTransporter().catch(error => {
+  console.error("Failed to initialize email transporter:", error);
+});
 
 const client = postgres(process.env.DATABASE_URL);
 const db = drizzle(client, { schema });

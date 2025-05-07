@@ -2,9 +2,9 @@ import { Form, useActionData, useNavigation } from "react-router";
 import { z } from "zod";
 import { database } from "~/database/context";
 import * as schema from "~/database/schema";
-import { randomBytes } from "crypto";
 import { v4 as uuidv4 } from 'uuid';
-import { hashPassword } from "~/utils/auth";
+import { calculateTokenExpiry, generateVerificationToken, hashPassword } from "~/utils/auth";
+import { sendVerificationEmail } from "~/utils/email";
 
 // Since we don't have type generation yet
 type RouteArgs = any;
@@ -50,8 +50,9 @@ export async function action({ request }: Route["ActionArgs"]) {
   // Hash the password using Argon2
   const passwordHash = await hashPassword(result.data.password);
   
-  // Generate random activation token (32 chars for the DB field)
-  const activationToken = randomBytes(16).toString('hex');
+  // Generate verification token and expiry time
+  const verificationToken = generateVerificationToken();
+  const tokenExpiry = calculateTokenExpiry(24); // 24 hours
 
   try {
     const db = database();
@@ -62,10 +63,22 @@ export async function action({ request }: Route["ActionArgs"]) {
       profileName: result.data.name,
       profileEmail: result.data.email,
       profilePasswordHash: passwordHash,
-      profileActivationToken: activationToken
+      profileActivationToken: verificationToken,
+      profileVerified: false,
+      profileTokenExpiry: tokenExpiry
     });
     
-    return { success: true };
+    // Send verification email
+    await sendVerificationEmail(
+      result.data.email,
+      result.data.name,
+      verificationToken
+    );
+    
+    return { 
+      success: true,
+      emailSent: true 
+    };
   } catch (error) {
     console.error("Error creating profile:", error);
     return { 
@@ -84,95 +97,118 @@ export default function SignUp() {
       <h1 className="text-2xl font-bold mb-6 text-center dark:text-white">Create Your Twixxer Account</h1>
       
       {actionData?.success && (
-        <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-md">
-          <p>Account created successfully! Please check your email for activation.</p>
+        <div className="mb-6 p-5 bg-green-100 text-green-800 rounded-md">
+          <div className="flex items-center mb-3">
+            <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span className="font-semibold">Account Created Successfully!</span>
+          </div>
+          <p className="mb-3">We've sent a verification link to your email address. Please check your inbox and click the link to activate your account.</p>
+          <p className="text-sm">
+            <strong>Note:</strong> If you don't see the email in your inbox, please check your spam folder. The verification link will expire in 24 hours.
+          </p>
+          <div className="mt-4 text-center">
+            <a 
+              href="/resend-verification"
+              className="text-blue-600 hover:text-blue-800 font-medium underline dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              Didn't receive the email? Resend verification
+            </a>
+          </div>
         </div>
       )}
       
-      <Form method="post" className="space-y-4">
-        {actionData?.formError && (
-          <div className="p-4 bg-red-100 text-red-700 rounded-md text-sm">
-            {actionData.formError}
+      {!actionData?.success && (
+        <Form method="post" className="space-y-4">
+          {actionData?.formError && (
+            <div className="p-4 bg-red-100 text-red-700 rounded-md text-sm">
+              {actionData.formError}
+            </div>
+          )}
+          
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Name
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+            {actionData?.errors?.name?._errors && (
+              <p className="text-red-500 text-xs mt-1">{actionData.errors.name._errors[0]}</p>
+            )}
           </div>
-        )}
-        
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Name
-          </label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
-          {actionData?.errors?.name?._errors && (
-            <p className="text-red-500 text-xs mt-1">{actionData.errors.name._errors[0]}</p>
-          )}
-        </div>
-        
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
-          {actionData?.errors?.email?._errors && (
-            <p className="text-red-500 text-xs mt-1">{actionData.errors.email._errors[0]}</p>
-          )}
-        </div>
-        
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
-          {actionData?.errors?.password?._errors && (
-            <p className="text-red-500 text-xs mt-1">{actionData.errors.password._errors[0]}</p>
-          )}
-        </div>
-        
-        <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Confirm Password
-          </label>
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
-          {actionData?.errors?.confirmPassword?._errors && (
-            <p className="text-red-500 text-xs mt-1">{actionData.errors.confirmPassword._errors[0]}</p>
-          )}
-        </div>
-        
-        <div>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Creating account..." : "Sign Up"}
-          </button>
-        </div>
-      </Form>
+          
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+            {actionData?.errors?.email?._errors && (
+              <p className="text-red-500 text-xs mt-1">{actionData.errors.email._errors[0]}</p>
+            )}
+          </div>
+          
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+            {actionData?.errors?.password?._errors && (
+              <p className="text-red-500 text-xs mt-1">{actionData.errors.password._errors[0]}</p>
+            )}
+          </div>
+          
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Confirm Password
+            </label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+            {actionData?.errors?.confirmPassword?._errors && (
+              <p className="text-red-500 text-xs mt-1">{actionData.errors.confirmPassword._errors[0]}</p>
+            )}
+          </div>
+          
+          <div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? "Creating account..." : "Sign Up"}
+            </button>
+          </div>
+        </Form>
+      )}
+      
+      <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+        <p>Already have an account? <a href="/login" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">Log in</a></p>
+      </div>
     </div>
   );
 }
