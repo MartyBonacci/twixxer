@@ -6,4 +6,6 @@
 # React Router
 /.react-router/
 /build/
-/.idea/
+
+.idea
+/*.sql

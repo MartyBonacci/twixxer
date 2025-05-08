@@ -32,3 +32,35 @@ export async function hashPassword(password: string): Promise<string> {
     salt: randomBytes(16)  // Generate a 16-byte salt
   });
 }
+
+/**
+ * Generates a verification token for email verification
+ * 
+ * @returns A string token (32 characters hex)
+ */
+export function generateVerificationToken(): string {
+  return randomBytes(16).toString('hex');
+}
+
+/**
+ * Calculates the expiry time for a verification token
+ * 
+ * @param hours Number of hours the token should be valid
+ * @returns Date object representing the expiry time
+ */
+export function calculateTokenExpiry(hours: number = 24): Date {
+  const expiryDate = new Date();
+  expiryDate.setHours(expiryDate.getHours() + hours);
+  return expiryDate;
+}
+
+/**
+ * Checks if a verification token is expired
+ * 
+ * @param expiryDate The expiry date of the token
+ * @returns Boolean indicating if the token is expired
+ */
+export function isTokenExpired(expiryDate: Date | null): boolean {
+  if (!expiryDate) return true;
+  return new Date() > expiryDate;
+}
