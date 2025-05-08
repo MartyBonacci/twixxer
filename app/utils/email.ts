@@ -47,11 +47,11 @@ async function getTransporter() {
  * Send a verification email to a user
  * 
  * @param email Recipient email address
- * @param name User's name
+ * @param username User's username
  * @param token Verification token
  * @returns Promise resolving to the info object from nodemailer
  */
-export async function sendVerificationEmail(email: string, name: string, token: string) {
+export async function sendVerificationEmail(email: string, username: string, token: string) {
   const transport = await getTransporter();
   
   const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
@@ -61,11 +61,11 @@ export async function sendVerificationEmail(email: string, name: string, token: 
     from: `"Twixxer" <${process.env.SMTP_FROM || 'noreply@twixxer.example.com'}>`,
     to: email,
     subject: 'Verify your Twixxer account',
-    text: `Hello ${name}!\n\nPlease verify your Twixxer account by clicking the link below:\n\n${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you did not create a Twixxer account, please ignore this email.`,
+    text: `Hello ${username}!\n\nPlease verify your Twixxer account by clicking the link below:\n\n${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you did not create a Twixxer account, please ignore this email.`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1DA1F2;">Welcome to Twixxer!</h2>
-        <p>Hello ${name}!</p>
+        <p>Hello ${username}!</p>
         <p>Please verify your Twixxer account by clicking the button below:</p>
         <div style="text-align: center; margin: 25px 0;">
           <a href="${verificationUrl}" 

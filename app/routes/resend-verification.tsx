@@ -81,7 +81,7 @@ export async function action({ request }: Route["ActionArgs"]) {
     // Send the verification email
     await sendVerificationEmail(
       profile.profileEmail,
-      profile.profileName,
+      profile.profileUsername,
       newToken
     );
     

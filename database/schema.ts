@@ -6,7 +6,7 @@ export const profileTable = pgTable("profile", {
   profileActivationToken: char({length:32}),
   profileEmail: varchar({ length: 255 }).notNull().unique(),
   profileImageUrl: varchar({ length: 255 }),
-  profileName: varchar({ length: 127 }).notNull(),
+  profileUsername: varchar({ length: 127 }).notNull().unique(),
   profilePasswordHash: varchar({ length: 255 }).notNull(),
   profileVerified: boolean().notNull().default(false),
   profileTokenExpiry: timestamp({ mode: 'date' }),
