@@ -91,3 +91,24 @@ The application uses React Router v7 with the following pattern:
 
 ### Server-Side Rendering
 The app uses server-side rendering with React Router's `createRequestHandler`. In development mode, it uses Vite's dev server with HMR. In production mode, it serves the built assets.
+
+## TypeScript
+
+The project uses TypeScript for type safety and better developer experience. All new code should be written in TypeScript with strict typings.
+
+### React Router Type Generation
+
+React Router v7 provides built-in type generation for route files using the following pattern:
+
+```typescript
+import type { Route } from "./+types/route-name";
+
+export function loader({ request }: Route.LoaderArgs) {}
+
+export function meta({}: Route.MetaArgs) {}
+
+export async function action({ request }: Route.ActionArgs) {}
+```
+
+#### Route Types File Structure
+Each route should have a corresponding types file in a `+types` directory adjacent to the route file:

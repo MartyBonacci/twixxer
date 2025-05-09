@@ -1,7 +1,8 @@
 
 import {Link} from "react-router";
+import type { Route } from "./+types/home";
 
-export function meta() {
+export const meta = ({}: Route.MetaArgs) => {
   return [
     { title: "Twixxer - Connect with the world" },
     { name: "description", content: "Join Twixxer today and connect with friends, share your thoughts, and stay updated with what's happening in the world." },

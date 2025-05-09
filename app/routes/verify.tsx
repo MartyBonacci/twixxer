@@ -4,26 +4,19 @@ import { database } from "~/database/context";
 import * as schema from "~/database/schema";
 import { isTokenExpired } from "~/utils/auth";
 import { eq } from "drizzle-orm";
+import type { Route } from "./+types/verify";
 
-// Since we don't have type generation yet
-type RouteArgs = any;
-type Route = {
-  MetaArgs: RouteArgs;
-  LoaderArgs: RouteArgs;
-  ComponentProps: RouteArgs;
-};
-
-export function meta({}: Route["MetaArgs"]) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "Verify Email - Twixxer" },
     { name: "description", content: "Verify your Twixxer email address" },
   ];
 }
 
-export async function loader({ request }: Route["LoaderArgs"]) {
+export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
-  
+
   // If no token is provided, redirect to homepage
   if (!token) {
     return { 
@@ -31,25 +24,25 @@ export async function loader({ request }: Route["LoaderArgs"]) {
       message: "No verification token provided." 
     };
   }
-  
+
   try {
     const db = database();
-    
+
     // Find the profile with the given activation token
     const profiles = await db
       .select()
       .from(schema.profileTable)
       .where(eq(schema.profileTable.profileActivationToken, token));
-    
+
     if (profiles.length === 0) {
       return { 
         status: "error", 
         message: "Invalid verification token." 
       };
     }
-    
+
     const profile = profiles[0];
-    
+
     // Check if the token is expired
     if (isTokenExpired(profile.profileTokenExpiry)) {
       return { 
@@ -57,7 +50,7 @@ export async function loader({ request }: Route["LoaderArgs"]) {
         message: "Verification link has expired. Please request a new one." 
       };
     }
-    
+
     // Check if the profile is already verified
     if (profile.profileVerified) {
       return { 
@@ -65,7 +58,7 @@ export async function loader({ request }: Route["LoaderArgs"]) {
         message: "Your email is already verified. You can now log in." 
       };
     }
-    
+
     // Verify the profile
     await db
       .update(schema.profileTable)
@@ -75,7 +68,7 @@ export async function loader({ request }: Route["LoaderArgs"]) {
         profileTokenExpiry: null
       })
       .where(eq(schema.profileTable.profileId, profile.profileId));
-    
+
     return { 
       status: "success", 
       message: "Your email has been verified successfully! You can now log in." 
@@ -93,19 +86,19 @@ export default function VerifyEmail() {
   const data = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
   const [animateIn, setAnimateIn] = useState(false);
-  
+
   useEffect(() => {
     // Animate the component in after mounting
     setAnimateIn(true);
   }, []);
-  
+
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md dark:bg-gray-800">
       <div 
         className={`transition-opacity duration-500 ${animateIn ? 'opacity-100' : 'opacity-0'}`}
       >
         <h1 className="text-2xl font-bold mb-6 text-center dark:text-white">Email Verification</h1>
-        
+
         {data.status === "success" && (
           <div className="p-4 mb-4 bg-green-100 text-green-700 rounded-md">
             <div className="flex items-center mb-2">
@@ -125,7 +118,7 @@ export default function VerifyEmail() {
             </div>
           </div>
         )}
-        
+
         {data.status === "verified" && (
           <div className="p-4 mb-4 bg-blue-100 text-blue-700 rounded-md">
             <div className="flex items-center mb-2">
@@ -145,7 +138,7 @@ export default function VerifyEmail() {
             </div>
           </div>
         )}
-        
+
         {data.status === "expired" && (
           <div className="p-4 mb-4 bg-yellow-100 text-yellow-700 rounded-md">
             <div className="flex items-center mb-2">
@@ -165,7 +158,7 @@ export default function VerifyEmail() {
             </div>
           </div>
         )}
-        
+
         {data.status === "error" && (
           <div className="p-4 mb-4 bg-red-100 text-red-700 rounded-md">
             <div className="flex items-center mb-2">
@@ -185,7 +178,7 @@ export default function VerifyEmail() {
             </div>
           </div>
         )}
-        
+
         <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
           <p>Need help? <Link to="/contact" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">Contact support</Link></p>
         </div>

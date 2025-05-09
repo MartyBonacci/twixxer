@@ -5,16 +5,7 @@ import * as schema from "~/database/schema";
 import { v4 as uuidv4 } from 'uuid';
 import { calculateTokenExpiry, generateVerificationToken, hashPassword } from "~/utils/auth";
 import { sendVerificationEmail } from "~/utils/email";
-
-
-// Since we don't have type generation yet
-type RouteArgs = any;
-type Route = {
-  MetaArgs: RouteArgs;
-  ActionArgs: RouteArgs;
-  ComponentProps: RouteArgs;
-  LoaderArgs: RouteArgs;
-};
+import type { Route } from "./+types/signup";
 
 const SignupSchema = z.object({
   name: z.string().min(2, "Username must be at least 2 characters"),
@@ -26,14 +17,14 @@ const SignupSchema = z.object({
   path: ["confirmPassword"]
 });
 
-export function meta({}: Route["MetaArgs"]) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "Sign Up - Twixxer" },
     { name: "description", content: "Create your Twixxer account" },
   ];
 }
 
-export async function loader({params}: Route["LoaderArgs"]) {
+export async function loader({params}: Route.LoaderArgs) {
   let username = params.username || "";
   // Check if the username already exists in the database
     const db = database();
@@ -49,7 +40,7 @@ export async function loader({params}: Route["LoaderArgs"]) {
     return { };
 }
 
-export async function action({ request }: Route["ActionArgs"]) {
+export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const data = {
     name: formData.get("name"),
@@ -105,7 +96,7 @@ export async function action({ request }: Route["ActionArgs"]) {
   }
 }
 
-export default function SignUp({loaderData}: Route["ComponentProps"]) {
+export default function SignUp({loaderData}: Route.ComponentProps) {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";

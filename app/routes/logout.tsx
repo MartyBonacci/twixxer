@@ -1,16 +1,11 @@
 import { redirect } from "react-router";
 import { logout } from "~/utils/auth";
+import type { Route } from "./+types/logout";
 
-// Since we don't have type generation yet
-type RouteArgs = any;
-type Route = {
-  ActionArgs: RouteArgs;
-};
-
-export async function action({ request }: Route["ActionArgs"]) {
+export async function action({ request }: Route.ActionArgs) {
   return logout(request);
 }
 
-export function loader() {
+export function loader({}: Route.LoaderArgs) {
   return redirect("/");
 }
