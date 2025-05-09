@@ -5,4 +5,6 @@ export default [
   route("signup?/:username", "routes/signup.tsx"),
   route("verify", "routes/verify.tsx"),
   route("resend-verification", "routes/resend-verification.tsx"),
+  route("login", "routes/login.tsx"),
+  route("logout", "routes/logout.tsx"),
 ] satisfies RouteConfig;

@@ -9,7 +9,13 @@ import {
 
 import type { Route } from "./+types/root";
 import { Navbar } from "./components/Navbar";
+import { getUserFromSession } from "./utils/auth";
 import "./app.css";
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const user = await getUserFromSession(request);
+  return { user };
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
