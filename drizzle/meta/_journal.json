@@ -22,6 +22,20 @@
       "when": 1746649055735,
       "tag": "0002_solid_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1747005271944,
+      "tag": "0003_oval_princess_powerful",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1747006637868,
+      "tag": "0004_fixed_ultron",
+      "breakpoints": true
     }
   ]
 }

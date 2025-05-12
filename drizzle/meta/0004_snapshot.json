@@ -1,55 +1,57 @@
 {
-  "id": "7f5a6b30-e1c8-49d7-b347-c9e12d84e519",
-  "prevId": "62688f20-a3b8-417e-a9e3-a9c6ccb04138",
+  "id": "65f91f7a-e9a1-4aac-8e75-8eaf68210ec5",
+  "prevId": "7f5a6b30-e1c8-49d7-b347-c9e12d84e519",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.guestBook": {
-      "name": "guestBook",
+    "public.chirp": {
+      "name": "chirp",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
+        "chirpId": {
+          "name": "chirpId",
+          "type": "uuid",
           "primaryKey": true,
+          "notNull": true
+        },
+        "chirpProfileId": {
+          "name": "chirpProfileId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chirpContent": {
+          "name": "chirpContent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chirpDate": {
+          "name": "chirpDate",
+          "type": "timestamp",
+          "primaryKey": false,
           "notNull": true,
-          "identity": {
-            "type": "always",
-            "name": "guestBook_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
+          "default": "now()"
         }
       },
       "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "guestBook_email_unique": {
-          "name": "guestBook_email_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+      "foreignKeys": {
+        "chirp_chirpProfileId_profile_profileId_fk": {
+          "name": "chirp_chirpProfileId_profile_profileId_fk",
+          "tableFrom": "chirp",
+          "tableTo": "profile",
+          "columnsFrom": [
+            "chirpProfileId"
+          ],
+          "columnsTo": [
+            "profileId"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -124,6 +126,13 @@
           "columns": [
             "profileEmail"
           ]
+        },
+        "profile_profileUsername_unique": {
+          "name": "profile_profileUsername_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "profileUsername"
+          ]
         }
       },
       "policies": {},
@@ -138,9 +147,7 @@
   "policies": {},
   "views": {},
   "_meta": {
-    "columns": {
-      "public.profile.profileName": "profileUsername"
-    },
+    "columns": {},
     "schemas": {},
     "tables": {}
   }

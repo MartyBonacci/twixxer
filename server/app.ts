@@ -24,9 +24,7 @@ initializeEmailTransporter().catch(error => {
 });
 
 const client = postgres(process.env.DATABASE_URL);
-const db
-
-  = drizzle(client, { schema });
+const db = drizzle(client, { schema });
 app.use((_, __, next) => DatabaseContext.run(db, next));
 
 app.use(

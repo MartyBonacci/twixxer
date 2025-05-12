@@ -31,6 +31,11 @@ export function Navbar() {
             <li>
               <Link to="/" className="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent" aria-current="page">Home</Link>
             </li>
+            {isLoggedIn && (
+              <li>
+                <Link to="/feed" className="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Feed</Link>
+              </li>
+            )}
           </ul>
           <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3 p-4 md:p-0 mt-3 md:mt-0">
             {isLoggedIn ? (

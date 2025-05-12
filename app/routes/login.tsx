@@ -11,7 +11,7 @@ import { eq, or } from "drizzle-orm";
 const LoginSchema = z.object({
   emailOrUsername: z.string().min(1, "Email or username is required"),
   password: z.string().min(1, "Password is required"),
-  redirectTo: z.string().default("/")
+  redirectTo: z.string().default("/feed")
 });
 
 export function meta({}: Route.MetaArgs) {
@@ -26,7 +26,7 @@ export async function action({ request }: Route.ActionArgs) {
   const data = {
     emailOrUsername: formData.get("emailOrUsername"),
     password: formData.get("password"),
-    redirectTo: formData.get("redirectTo") || "/"
+    redirectTo: formData.get("redirectTo") || "/feed"
   };
 
   // Validate form data
@@ -112,10 +112,10 @@ export default function Login() {
           <p className="mb-3">You are now logged in to your account.</p>
           <div className="mt-4 text-center">
             <a
-              href="/"
+              href="/feed"
               className="text-blue-600 hover:text-blue-800 font-medium underline dark:text-blue-400 dark:hover:text-blue-300"
             >
-              Go to Home
+              Go to Feed
             </a>
           </div>
         </div>

@@ -1,59 +1,9 @@
 {
-  "id": "62688f20-a3b8-417e-a9e3-a9c6ccb04138",
-  "prevId": "2ba30c82-0c88-4be9-97e5-5e3e66ccc07b",
+  "id": "81aca9c0-dd8c-4cc5-a840-8669db54f721",
+  "prevId": "7f5a6b30-e1c8-49d7-b347-c9e12d84e519",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.guestBook": {
-      "name": "guestBook",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "always",
-            "name": "guestBook_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "guestBook_email_unique": {
-          "name": "guestBook_email_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.profile": {
       "name": "profile",
       "schema": "",
@@ -88,8 +38,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "profileName": {
-          "name": "profileName",
+        "profileUsername": {
+          "name": "profileUsername",
           "type": "varchar(127)",
           "primaryKey": false,
           "notNull": true
@@ -123,6 +73,13 @@
           "nullsNotDistinct": false,
           "columns": [
             "profileEmail"
+          ]
+        },
+        "profile_profileUsername_unique": {
+          "name": "profile_profileUsername_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "profileUsername"
           ]
         }
       },
