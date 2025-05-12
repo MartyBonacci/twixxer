@@ -1,4 +1,4 @@
-import { useLoaderData, useActionData, Form, redirect, useNavigation, useFetcher, type LoaderFunctionArgs, type ActionFunctionArgs, type MetaFunction } from "react-router";
+import { useLoaderData, useActionData, redirect, useNavigation, useFetcher, type LoaderFunctionArgs, type ActionFunctionArgs, type MetaFunction } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import { database } from "~/database/context";
 import * as schema from "~/database/schema";
@@ -7,6 +7,7 @@ import { desc } from "drizzle-orm";
 import { z } from "zod";
 import { v7 as uuidv7 } from 'uuid';
 import { Chirp } from "~/components/Chirp";
+import { ChirpForm } from "~/components/ChirpForm";
 
 export function meta({}: Parameters<MetaFunction>[0]) {
   return [
@@ -51,24 +52,44 @@ export async function action({ request }: ActionFunctionArgs) {
       return { formError: "You must be logged in to create a chirp" };
     }
 
+    // Generate a new chirp ID
+    const chirpId = uuidv7();
+    const chirpDate = new Date();
+
     // Insert new chirp into the database
     await db.insert(schema.chirpTable).values({
-      chirpId: uuidv7(),
+      chirpId,
       chirpProfileId: user.userId,
       chirpContent: result.data.content,
-      chirpDate: new Date(),
+      chirpDate,
     });
 
-    // Redirect to reload the page and fetch the updated list of chirps
-    // Include a success parameter to display a success message
-    // Preserve the current page if it exists in the URL
-    const url = new URL(request.url);
-    const currentPage = url.searchParams.get("page");
-    const redirectUrl = currentPage 
-      ? `/feed?success=true&page=${currentPage}` 
-      : "/feed?success=true";
+    // Fetch the profile data needed for displaying the chirp
+    const profile = await db.query.profileTable.findFirst({
+      where: (profile, { eq }) => eq(profile.profileId, user.userId),
+      columns: {
+        profileUsername: true,
+        profileImageUrl: true,
+      },
+    });
 
-    return redirect(redirectUrl);
+    // Create a new chirp object with the profile data
+    const newChirp = {
+      chirpId,
+      chirpProfileId: user.userId,
+      chirpContent: result.data.content,
+      chirpDate,
+      profile: {
+        profileUsername: profile?.profileUsername || user.username,
+        profileImageUrl: profile?.profileImageUrl,
+      },
+    };
+
+    // Return the new chirp data and success flag
+    return { 
+      newChirp,
+      success: true
+    };
   } catch (error) {
     console.error("Error creating chirp:", error);
     return { formError: "An error occurred while creating your chirp. Please try again." };
@@ -139,19 +160,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function Feed() {
-  const { chirps: initialChirps, user, error, success, page, hasMore } = useLoaderData<typeof loader>();
+  const { chirps: initialChirps, user, error, success: loaderSuccess, page, hasMore } = useLoaderData<typeof loader>();
   const [allChirps, setAllChirps] = useState(initialChirps);
   const [currentPage, setCurrentPage] = useState(page);
   const [loadingMore, setLoadingMore] = useState(false);
   const [canLoadMore, setCanLoadMore] = useState(hasMore);
+  const [success, setSuccess] = useState(loaderSuccess);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fetcher = useFetcher();
 
   const actionData = useActionData<typeof action>();
-  const navigation = useNavigation();
-  const isSubmitting = navigation.state === "submitting" && 
-                      navigation.formAction === "/feed" && 
-                      navigation.formMethod === "POST";
 
   // Load more chirps when fetcher returns data
   useEffect(() => {
@@ -161,6 +179,25 @@ export default function Feed() {
       setLoadingMore(false);
     }
   }, [fetcher.data]);
+
+  // Handle new chirp from action data
+  const handleChirpSuccess = (newChirp: any) => {
+    // Add the new chirp to the beginning of the list
+    setAllChirps(prev => [newChirp, ...prev]);
+    // Set success message
+    setSuccess(true);
+  };
+
+  // Auto-hide success message after 3 seconds
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   // Set up intersection observer for infinite scrolling
   useEffect(() => {
@@ -209,44 +246,10 @@ export default function Feed() {
       )}
 
       {/* Chirp Form */}
-      <div className="mb-6 p-4 bg-white rounded-lg shadow-md dark:bg-gray-800">
-        <Form method="post" className="space-y-4">
-          {actionData?.formError && (
-            <div className="p-4 bg-red-100 text-red-700 rounded-md text-sm">
-              {actionData.formError}
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              What's happening?
-            </label>
-            <textarea
-              id="content"
-              name="content"
-              rows={3}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="Share your thoughts..."
-              maxLength={280}
-            ></textarea>
-            {actionData?.errors?.content?._errors && (
-              <p className="text-red-500 text-xs mt-1">{actionData.errors.content._errors[0]}</p>
-            )}
-            <div className="flex justify-between items-center mt-2">
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                Max 280 characters
-              </div>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? "Posting..." : "Chirp"}
-              </button>
-            </div>
-          </div>
-        </Form>
-      </div>
+      <ChirpForm 
+        actionData={actionData}
+        onSuccess={handleChirpSuccess}
+      />
 
       {error && (
         <div className="p-4 mb-4 bg-red-100 text-red-700 rounded-md">

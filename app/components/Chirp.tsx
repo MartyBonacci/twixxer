@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router";
 
 // Define the type for the chirp props
 interface ChirpProps {
@@ -39,7 +40,12 @@ export function Chirp({ chirp }: ChirpProps) {
         <div className="flex-1">
           <div className="flex items-center mb-1">
             <h3 className="font-bold text-gray-900 dark:text-white mr-2">
-              {chirp.profile.profileUsername}
+              <Link 
+                to={`/profile/${chirp.profile.profileUsername}`}
+                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                {chirp.profile.profileUsername}
+              </Link>
             </h3>
             <span className="text-sm text-gray-500 dark:text-gray-400">
               {new Date(chirp.chirpDate).toLocaleString()}

@@ -109,6 +109,3 @@ export function meta({}: Route.MetaArgs) {}
 
 export async function action({ request }: Route.ActionArgs) {}
 ```
-
-#### Route Types File Structure
-Each route should have a corresponding types file in a `+types` directory adjacent to the route file:
