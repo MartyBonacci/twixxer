@@ -2,7 +2,7 @@ import {Form, useActionData, useNavigate, useNavigation} from "react-router";
 import { z } from "zod";
 import { database } from "~/database/context";
 import * as schema from "~/database/schema";
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { calculateTokenExpiry, generateVerificationToken, hashPassword } from "~/utils/auth";
 import { sendVerificationEmail } from "~/utils/email";
 import type { Route } from "./+types/signup";
@@ -68,7 +68,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Create new profile with UUID
     await db.insert(schema.profileTable).values({
-      profileId: uuidv4(),
+      profileId: uuidv7(),
       profileUsername: result.data.name,
       profileEmail: result.data.email,
       profilePasswordHash: passwordHash,

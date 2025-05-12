@@ -1,10 +1,12 @@
-import { useLoaderData, useActionData, Form, redirect, useNavigation, type LoaderFunctionArgs, type ActionFunctionArgs, type MetaFunction } from "react-router";
+import { useLoaderData, useActionData, Form, redirect, useNavigation, useFetcher, type LoaderFunctionArgs, type ActionFunctionArgs, type MetaFunction } from "react-router";
+import { useEffect, useRef, useState } from "react";
 import { database } from "~/database/context";
 import * as schema from "~/database/schema";
 import { isAuthenticated, getUserFromSession } from "~/utils/auth";
 import { desc } from "drizzle-orm";
 import { z } from "zod";
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
+import { Chirp } from "~/components/Chirp";
 
 export function meta({}: Parameters<MetaFunction>[0]) {
   return [
@@ -51,7 +53,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Insert new chirp into the database
     await db.insert(schema.chirpTable).values({
-      chirpId: uuidv4(),
+      chirpId: uuidv7(),
       chirpProfileId: user.userId,
       chirpContent: result.data.content,
       chirpDate: new Date(),
@@ -59,7 +61,14 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Redirect to reload the page and fetch the updated list of chirps
     // Include a success parameter to display a success message
-    return redirect("/feed?success=true");
+    // Preserve the current page if it exists in the URL
+    const url = new URL(request.url);
+    const currentPage = url.searchParams.get("page");
+    const redirectUrl = currentPage 
+      ? `/feed?success=true&page=${currentPage}` 
+      : "/feed?success=true";
+
+    return redirect(redirectUrl);
   } catch (error) {
     console.error("Error creating chirp:", error);
     return { formError: "An error occurred while creating your chirp. Please try again." };
@@ -79,13 +88,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const success = url.searchParams.get("success") === "true";
 
+  // Get pagination parameters from URL
+  const page = parseInt(url.searchParams.get("page") || "1", 10);
+  const limit = parseInt(url.searchParams.get("limit") || "10", 10);
+  const offset = (page - 1) * limit;
+
   try {
     const db = database();
     const user = await getUserFromSession(request);
 
-    // Fetch chirps from the database, ordered by date (newest first)
+    // Fetch chirps from the database with pagination, ordered by date (newest first)
     const chirps = await db.query.chirpTable.findMany({
       orderBy: [desc(schema.chirpTable.chirpDate)],
+      limit: limit,
+      offset: offset,
       with: {
         profile: {
           columns: {
@@ -96,10 +112,22 @@ export async function loader({ request }: LoaderFunctionArgs) {
       },
     });
 
+    // Fetch one more chirp to check if there are more chirps to load
+    const nextChirps = await db.query.chirpTable.findMany({
+      orderBy: [desc(schema.chirpTable.chirpDate)],
+      limit: 1,
+      offset: offset + limit,
+    });
+
+    const hasMore = nextChirps.length > 0;
+
     return {
       chirps,
       user,
       success,
+      page,
+      limit,
+      hasMore,
     };
   } catch (error) {
     console.error("Error fetching chirps:", error);
@@ -111,12 +139,63 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function Feed() {
-  const { chirps, user, error, success } = useLoaderData<typeof loader>();
+  const { chirps: initialChirps, user, error, success, page, hasMore } = useLoaderData<typeof loader>();
+  const [allChirps, setAllChirps] = useState(initialChirps);
+  const [currentPage, setCurrentPage] = useState(page);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [canLoadMore, setCanLoadMore] = useState(hasMore);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const fetcher = useFetcher();
+
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting" && 
                       navigation.formAction === "/feed" && 
                       navigation.formMethod === "POST";
+
+  // Load more chirps when fetcher returns data
+  useEffect(() => {
+    if (fetcher.data && fetcher.data.chirps) {
+      setAllChirps(prev => [...prev, ...fetcher.data.chirps]);
+      setCanLoadMore(fetcher.data.hasMore);
+      setLoadingMore(false);
+    }
+  }, [fetcher.data]);
+
+  // Set up intersection observer for infinite scrolling
+  useEffect(() => {
+    if (!canLoadMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore && canLoadMore) {
+          loadMoreChirps();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    if (bottomRef.current) {
+      observer.observe(bottomRef.current);
+    }
+
+    return () => {
+      if (bottomRef.current) {
+        observer.unobserve(bottomRef.current);
+      }
+    };
+  }, [canLoadMore, loadingMore, currentPage]);
+
+  // Function to load more chirps
+  const loadMoreChirps = () => {
+    if (loadingMore || !canLoadMore) return;
+
+    setLoadingMore(true);
+    const nextPage = (currentPage ?? 1) + 1;
+    setCurrentPage(nextPage);
+
+    fetcher.load(`/feed?page=${nextPage}`);
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -175,46 +254,29 @@ export default function Feed() {
         </div>
       )}
 
-      {chirps.length === 0 && !error ? (
+      {allChirps.length === 0 && !error ? (
         <div className="p-6 bg-white rounded-lg shadow-md dark:bg-gray-800 text-center">
           <p className="text-gray-600 dark:text-gray-300">No chirps yet. Be the first to chirp!</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {chirps.map((chirp) => (
-            <div key={chirp.chirpId} className="p-4 bg-white rounded-lg shadow-md dark:bg-gray-800">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mr-3">
-                  {chirp.profile.profileImageUrl ? (
-                    <img
-                      src={chirp.profile.profileImageUrl}
-                      alt={`${chirp.profile.profileUsername}'s avatar`}
-                      className="w-10 h-10 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-gray-600 font-bold">
-                        {chirp.profile.profileUsername.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center mb-1">
-                    <h3 className="font-bold text-gray-900 dark:text-white mr-2">
-                      {chirp.profile.profileUsername}
-                    </h3>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(chirp.chirpDate).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                    {chirp.chirpContent}
-                  </p>
-                </div>
-              </div>
-            </div>
+          {allChirps.map((chirp, index) => (
+            <Chirp key={`${chirp.chirpId}${index}`} chirp={chirp} />
           ))}
+
+          {/* Loading indicator and intersection observer reference */}
+          <div ref={bottomRef} className="py-4 text-center">
+            {loadingMore && (
+              <div className="flex justify-center items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            )}
+            {!canLoadMore && allChirps.length > 0 && (
+              <p className="text-gray-500 dark:text-gray-400 text-sm">No more chirps to load</p>
+            )}
+          </div>
         </div>
       )}
     </div>
